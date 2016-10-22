@@ -1,6 +1,8 @@
 # igor-Jig
 Interactive filtering tool in Igor Pro
 
+**This procedure do not work in Igor Pro 7!**
+
 ## Usage
 ```
 Function JigWin()
