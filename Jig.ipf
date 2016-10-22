@@ -1,16 +1,17 @@
-#pragma rtGlobals=3		// Use modern global access method and strict wave access.
+#pragma ModuleName=Jig
 
-Function JigL(list,cmd [delim])
+Function Jig(list,cmd [delim])
 	String list,cmd,delim
 	if(ParamIsDefault(delim))
 		delim=";"
 	endif
 	Make/FREE/T/N=(ItemsInList(list,delim)) w=StringFromList(p,list,delim)
-	Jig(w,cmd)
+	Jigw(w,cmd)
 End
 
-Function Jig(w,cmd)
+Function Jigw(w,cmd)
 	WAVE/T w; String cmd
+
 	// Make source
 	NewDataFolder/O root:Packages
 	NewDataFolder/O root:Packages:Jig
@@ -21,6 +22,7 @@ Function Jig(w,cmd)
 	if(strlen(WinList("JigPanel",";","WIN:64")))
 		KillWindow JigPanel
 	endif
+
 	Variable width =NumberByKey("WIDTH" ,Screen())
 	Variable height=NumberByKey("HEIGHT",Screen())
 	NewPanel/K=1/W=(width*(1/4),height*(1/4),width*(3/4),height*(3/4))/N=JigPanel as cmd
@@ -34,35 +36,36 @@ Function Jig(w,cmd)
 	SetVariable JigInput,win=$win,fsize=16
 	SetVariable JigInput,win=$win,size={20,0}
 	SetVariable JigInput,win=$win,userData=cmd
-	SetVariable JigInput,win=$win,proc=JigInputAction
+	SetVariable JigInput,win=$win,proc=Jig#InputAction
 	Execute/P/Q "SetVariable JigInput,win="+win+",activate"
 	//// display input string
-	SetVariable JigDisplay,win=$win,pos={0,0}
-	SetVariable JigDisplay,win=$win,value=_str:""
-	SetVariable JigDisplay,win=$win,fsize=16
-	SetVariable JigDisplay,win=$win,size={width/2,0}
+	SetVariable JigLine,win=$win,pos={0,0}
+	SetVariable JigLine,win=$win,value=_str:""
+	SetVariable JigLine,win=$win,fsize=16
+	SetVariable JigLine,win=$win,size={width/2,0}
 
 	//// output
-	ListBox JigOutput,win=$win,pos={0,30}
-	ListBox JigOutput,win=$win,fsize=14
-	ListBox JigOutput,win=$win,size={width,height*(2/3)}
-	ListBox JigOutput,win=$win,listWave=root:Packages:Jig:buffer
+	ListBox JigBuffer,win=$win,pos={0,30}
+	ListBox JigBuffer,win=$win,fsize=14
+	ListBox JigBuffer,win=$win,size={width,height*(2/3)}
+	ListBox JigBuffer,win=$win,listWave=root:Packages:Jig:buffer
 	
 	// Run background process
 	CtrlNamedBackground JigBkg,proc=JigBkgProc,period=1,start
 End
 
 
-Function JigInputAction(sv) : SetVariableControl
+static Function InputAction(sv) : SetVariableControl
 	STRUCT WMSetVariableAction &sv
 	if(sv.eventCode>0)
 		if(sv.eventMod==0 && StringMatch(sv.sval,num2char(18))) // Enter
-			ControlInfo/W=JigPanel JigDisplay
+			ControlInfo/W=JigPanel JigLine
 			KillWindow $sv.win
 			String  cmd
 			sprintf cmd, sv.userData, S_Value
-			Execute cmd
+			Execute/Z cmd
 			print num2char(cmpstr(IgorInfo(2),"Macintosh") ? 42 : -91) + cmd
+			print GetErrMessage(V_Flag)
 		else		
 			if(sv.eventMod==2) // Shift+Enter
 //				print "SHIFT"
@@ -78,16 +81,13 @@ Function JigInputAction(sv) : SetVariableControl
 	endif
 End
 
-Function JigBkgStop()
-End
-
 Function JigBkgProc(s)
 	STRUCT WMBackgroundStruct &s
 	if(strlen(WinList("JigPanel",";","WIN:64")))
 		ControlUpdate/W=JigPanel JigInput
 		ControlInfo/W=JigPanel JigInput
 		String input_chr=S_Value
-		ControlInfo/W=JigPanel JigDisplay
+		ControlInfo/W=JigPanel JigLine
 		String input_str=S_Value
 		if(!StringMatch(input_chr,num2char(18)))
 			if(strlen(input_chr)<1)
@@ -95,7 +95,7 @@ Function JigBkgProc(s)
 			else
 				input_str=input_str+input_chr
 			endif
-			SetVariable JigDisplay,win=JigPanel,value=_str:input_str
+			SetVariable JigLine,win=JigPanel,value=_str:input_str
 			WAVE/T buf=root:Packages:Jig:buffer
 			WAVE/T src=root:Packages:Jig:source
 
