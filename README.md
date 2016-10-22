@@ -10,7 +10,7 @@ Function JigWin()
 End
 
 Function JigHelp()
-	Jig(FunctionList("*",";","KIND:1")+OperationList("*",";",""),"DisplayHelpTopic ¥"%s¥"")
+	Jig(FunctionList("*",";","KIND:1")+OperationList("*",";",""),"DisplayHelpTopic \"%s\"")
 End
 
 Function JigFunc()
