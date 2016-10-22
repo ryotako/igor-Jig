@@ -1,5 +1,10 @@
 #pragma ModuleName=Jig
+constant Jig_FontSize=16
+strconstant Jig_Font=""
 
+/////////////////////////////////////////////////////////////////////////////////
+// Public Functions /////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
 Function Jig(list,cmd [delim])
 	String list,cmd,delim
 	if(ParamIsDefault(delim))
@@ -11,6 +16,14 @@ End
 
 Function Jigw(w,cmd)
 	WAVE/T w; String cmd
+	Variable screenHeight = NumberByKey("HEIGHT",Screen())
+	Variable screenWidth  = NumberByKey("WIDTH" ,Screen())
+	Variable fontHeight   = FontSizeHeight(Font(),Jig_FontSize,0)
+	Variable panelHeight  = screenHeight*(2/5)
+	Variable panelWidth   = screenWidth *(2/5)
+	Variable bufferHeight = panelHeight-fontHeight
+	Variable topMargin    = (screenHeight-panelHeight)/2
+	Variable leftMargin   = (screenWidth-panelWidth)/2
 
 	// Make source
 	NewDataFolder/O root:Packages
@@ -22,54 +35,64 @@ Function Jigw(w,cmd)
 	if(strlen(WinList("JigPanel",";","WIN:64")))
 		KillWindow JigPanel
 	endif
-
-	Variable width =NumberByKey("WIDTH" ,Screen())
-	Variable height=NumberByKey("HEIGHT",Screen())
-	NewPanel/K=1/W=(width*(1/4),height*(1/4),width*(3/4),height*(3/4))/N=JigPanel as cmd
+	NewPanel/K=1/W=(leftMargin,topMargin,leftMargin+panelWidth,topMargin+panelHeight)/N=JigPanel as cmd
 	ModifyPanel/W=JigPanel fixedSize=1,noEdit=1
 	String win=S_Name
 	
 	// Make controls
-	//// input character
-	SetVariable JigInput,win=$win,pos={width*(1/2)+10,0}
+	//// hidden input control
+	SetVariable JigInput,win=$win,pos={panelWidth+10,0}
+	SetVariable JigInput,win=$win,size={fontHeight,0}
+	SetVariable JigInput,win=$win,fsize=Jig_FontSize
+	Execute/Z "SetVariable JigInput,win="+win+",font="+Font()
 	SetVariable JigInput,win=$win,value=_str:num2char(18)
-	SetVariable JigInput,win=$win,fsize=16
-	SetVariable JigInput,win=$win,size={20,0}
 	SetVariable JigInput,win=$win,userData=cmd
 	SetVariable JigInput,win=$win,proc=Jig#InputAction
 	Execute/P/Q "SetVariable JigInput,win="+win+",activate"
-	//// display input string
-	SetVariable JigLine,win=$win,pos={0,0}
-	SetVariable JigLine,win=$win,value=_str:""
-	SetVariable JigLine,win=$win,fsize=16
-	SetVariable JigLine,win=$win,size={width/2,0}
 
-	//// output
-	ListBox JigBuffer,win=$win,pos={0,30}
-	ListBox JigBuffer,win=$win,fsize=14
-	ListBox JigBuffer,win=$win,size={width,height*(2/3)}
+	//// input string display
+	SetVariable JigLine,win=$win,pos={0,0}
+	SetVariable JigLine,win=$win,size={panelWidth,0}
+	SetVariable JigLine,win=$win,fsize=Jig_FontSize
+	Execute/Z "SetVariable JigLine,win="+win+",font="+Font()
+	SetVariable JigLine,win=$win,value=_str:""
+
+	//// buffer for candidates
+	ListBox JigBuffer,win=$win,pos={0,fontHeight}
+	ListBox JigBuffer,win=$win,size={panelWidth,bufferHeight}
+	ListBox JigBuffer,win=$win,fsize=Jig_FontSize
+	Execute/Z "ListBox JigBuffer,win="+win+",font="+Font()
 	ListBox JigBuffer,win=$win,listWave=root:Packages:Jig:buffer
-	
+	ListBox JigBuffer,win=$win,mode=2
+	ListBox JigBuffer,win=$win,row=0
+	ListBox JigBuffer,win=$win,selrow=0
+
 	// Run background process
-	CtrlNamedBackground JigBkg,proc=JigBkgProc,period=1,start
+	CtrlNamedBackground JigBkg,proc=Jig#BkgProc,period=1,start
 End
 
-
+/////////////////////////////////////////////////////////////////////////////////
+// Control Action ///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
 static Function InputAction(sv) : SetVariableControl
 	STRUCT WMSetVariableAction &sv
 	if(sv.eventCode>0)
 		if(sv.eventMod==0 && StringMatch(sv.sval,num2char(18))) // Enter
-			ControlInfo/W=JigPanel JigLine
+			ControlInfo/W=JigPanel JigBuffer
 			KillWindow $sv.win
-			String  cmd
-			sprintf cmd, sv.userData, S_Value
-			Execute/Z cmd
-			print num2char(cmpstr(IgorInfo(2),"Macintosh") ? 42 : -91) + cmd
-			print GetErrMessage(V_Flag)
+			WAVE/T w=root:Packages:Jig:buffer
+			if(DimSize(w,0)>0)
+				String  cmd
+				sprintf cmd, sv.userData, w[V_Value]
+				Execute/Z cmd
+				print num2char(cmpstr(IgorInfo(2),"Macintosh") ? 42 : -91) + cmd
+				print GetErrMessage(V_Flag)
+			endif
 		else		
 			if(sv.eventMod==2) // Shift+Enter
-//				print "SHIFT"
+				Scroll(+1)
 			elseif(sv.eventMod==4) // Alt+Enter
+				Scroll(-1)
 //				print "OPTION/ALT"
 			elseif(sv.eventMod==8) // Ctrl+Enter
 //				print "CMD/CTRL"
@@ -80,8 +103,21 @@ static Function InputAction(sv) : SetVariableControl
 		CtrlNamedBackground JigBkg,stop
 	endif
 End
+static Function Scroll(step)
+	Variable step
+	Variable size=DimSize(root:Packages:Jig:buffer,0)
+	if(size>0)
+		ControlInfo/W=JigPanel JigBuffer
+		Variable next=mod(V_Value+size+step,size)
+		ListBox JigBuffer,win=JigPanel,row=next
+		ListBox JigBuffer,win=JigPanel,selrow=next
+	endif
+End
 
-Function JigBkgProc(s)
+/////////////////////////////////////////////////////////////////////////////////
+// Background Process ///////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+static Function BkgProc(s)
 	STRUCT WMBackgroundStruct &s
 	if(strlen(WinList("JigPanel",";","WIN:64")))
 		ControlUpdate/W=JigPanel JigInput
@@ -96,10 +132,17 @@ Function JigBkgProc(s)
 				input_str=input_str+input_chr
 			endif
 			SetVariable JigLine,win=JigPanel,value=_str:input_str
-			WAVE/T buf=root:Packages:Jig:buffer
-			WAVE/T src=root:Packages:Jig:source
-
-			Extract/T/O src,buf,GrepString(src,"(?i)"+input_str)
+			
+			Duplicate/FREE/T root:Packages:Jig:source buf 
+			String list=RemoveFromList(" ",input_str," ")
+			Variable i,N=ItemsInList(list," ")
+			Make/FREE/T/N=(N) w=StringFromList(p,list," ")
+			for(i=0;i<N;i+=1)
+				Extract/T/O buf,buf,GrepString(buf,"(?i)"+w[i])				
+			endfor
+			ListBox JigBuffer,win=JigPanel,row=0
+			ListBox JigBuffer,win=JigPanel,selrow=0
+			Duplicate/O/T buf root:Packages:Jig:buffer
 		endif
 		SetVariable JigInput,win=JigPanel,value=_str:num2char(18)
 		SetVariable JigInput,win=JigPanel,activate
@@ -109,9 +152,18 @@ Function JigBkgProc(s)
 	endif
 End
 
-Function/S Screen()
+/////////////////////////////////////////////////////////////////////////////////
+// Utilities ////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+static Function/S Screen()
 	String width,height,output
 	SplitString/E="RECT=0,0,([0-9]+),([0-9]+)" IgorInfo(0),width,height
 	sprintf output,"WIDTH:%s;HEIGHT:%s",width,height
 	return output
 End 
+
+static Function/S Font()
+	if(strlen(FontList(Jig_Font)))
+		return GetDefaultFont("")
+	endif
+End
