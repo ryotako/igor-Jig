@@ -18,12 +18,12 @@ Function Jigw(w,cmd)
 	WAVE/T w; String cmd
 	Variable screenHeight = NumberByKey("HEIGHT",Screen())
 	Variable screenWidth  = NumberByKey("WIDTH" ,Screen())
-	Variable fontHeight   = FontSizeHeight(Font(),Jig_FontSize,0)
+	Variable fontHeight   = FontSizeHeight(Font(),Jig_FontSize,0,"native")
 	Variable panelHeight  = screenHeight*(2/5)
 	Variable panelWidth   = screenWidth *(2/5)
-	Variable bufferHeight = panelHeight-fontHeight
 	Variable topMargin    = (screenHeight-panelHeight)/2
 	Variable leftMargin   = (screenWidth-panelWidth)/2
+	Variable bufferHeight = panelHeight-FontHeight
 
 	// Make source
 	NewDataFolder/O root:Packages
@@ -51,8 +51,10 @@ Function Jigw(w,cmd)
 	Execute/P/Q "SetVariable JigInput,win="+win+",activate"
 
 	//// input string display
+	ControlInfo/W=$win JigInput
+	print V_Height,S_Recreation
 	SetVariable JigLine,win=$win,pos={0,0}
-	SetVariable JigLine,win=$win,size={panelWidth,0}
+	SetVariable JigLine,win=$win,size={panelWidth,V_Height}
 	SetVariable JigLine,win=$win,fsize=Jig_FontSize
 	Execute/Z "SetVariable JigLine,win="+win+",font="+Font()
 	SetVariable JigLine,win=$win,value=_str:""
@@ -93,7 +95,6 @@ static Function InputAction(sv) : SetVariableControl
 				Scroll(+1)
 			elseif(sv.eventMod==4) // Alt+Enter
 				Scroll(-1)
-//				print "OPTION/ALT"
 			elseif(sv.eventMod==8) // Ctrl+Enter
 //				print "CMD/CTRL"
 			endif		
