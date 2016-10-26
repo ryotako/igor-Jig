@@ -52,7 +52,6 @@ Function Jigw(w,cmd)
 
 	//// input string display
 	ControlInfo/W=$win JigInput
-	print V_Height,S_Recreation
 	SetVariable JigLine,win=$win,pos={0,0}
 	SetVariable JigLine,win=$win,size={panelWidth,V_Height}
 	SetVariable JigLine,win=$win,fsize=Jig_FontSize
