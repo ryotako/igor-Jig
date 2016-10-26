@@ -18,7 +18,7 @@ Function Jigw(w,cmd)
 	WAVE/T w; String cmd
 	Variable screenHeight = NumberByKey("HEIGHT",Screen())
 	Variable screenWidth  = NumberByKey("WIDTH" ,Screen())
-	Variable fontHeight   = FontSizeHeight(Font(),Jig_FontSize,0,"native")
+	Variable fontHeight   = FontSizeHeight(Font(),Jig_FontSize,0,"native")*	1.25
 	Variable panelHeight  = screenHeight*(2/5)
 	Variable panelWidth   = screenWidth *(2/5)
 	Variable topMargin    = (screenHeight-panelHeight)/2
