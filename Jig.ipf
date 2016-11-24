@@ -18,7 +18,7 @@ Function Jigw(w,cmd)
 	WAVE/T w; String cmd
 	
 	// Version & OS check
-	if(IgorVersion() != 6 || StringMatch(IgorInfo(2),"Macintosh"))
+	if(IgorVersion() >= 7 || !StringMatch(IgorInfo(2),"Macintosh"))
 		return NaN
 	endif
 	
