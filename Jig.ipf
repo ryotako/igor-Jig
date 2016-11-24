@@ -16,6 +16,12 @@ End
 
 Function Jigw(w,cmd)
 	WAVE/T w; String cmd
+	
+	// Version & OS check
+	if(IgorVersion() != 6 || StringMatch(IgorInfo(2),"Macintosh"))
+		return NaN
+	endif
+	
 	Variable screenHeight = NumberByKey("HEIGHT",Screen())
 	Variable screenWidth  = NumberByKey("WIDTH" ,Screen())
 	Variable fontHeight   = FontSizeHeight(Font(),Jig_FontSize,0,"native")*	1.25
