@@ -83,8 +83,7 @@ static Function InputAction(sv) : SetVariableControl
 			KillWindow $sv.win
 			WAVE/T w=root:Packages:Jig:buffer
 			if(DimSize(w,0)>0)
-				String  cmd
-				sprintf cmd, sv.userData, w[V_Value]
+				String  cmd = ReplaceString("%s", sv.userData, w[V_Value])
 				Execute/Z cmd
 				print num2char(cmpstr(IgorInfo(2),"Macintosh") ? 42 : -91) + cmd
 				print GetErrMessage(V_Flag)
@@ -119,6 +118,7 @@ End
 /////////////////////////////////////////////////////////////////////////////////
 static Function BkgProc(s)
 	STRUCT WMBackgroundStruct &s
+	SLEEP/T 1
 	if(strlen(WinList("JigPanel",";","WIN:64")))
 		ControlUpdate/W=JigPanel JigInput
 		ControlInfo/W=JigPanel JigInput
