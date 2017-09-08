@@ -1,8 +1,9 @@
 #pragma ModuleName=JigSamples
 #include "Jig"
+strconstant JigSample_Menu = "Jig"
 
-
-Menu "Jig"
+Menu StringFromList(0, JigSample_Menu)
+	RemoveListItem(0, JigSample_Menu)
 	"Jig Functions/F1",/Q,Jig_JigFunction()
 	"-"
 	"\M0Window (Show)",/Q,Jig_WindowShow()
